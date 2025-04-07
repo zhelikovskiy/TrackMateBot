@@ -16,6 +16,7 @@ Item.init(
 		id: {
 			type: DataTypes.INTEGER,
 			primaryKey: true,
+			autoIncrement: true,
 		},
 		url: {
 			type: DataTypes.TEXT,
