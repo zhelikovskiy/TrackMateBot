@@ -15,6 +15,10 @@ class UserService {
 		return User.create({ id: data.id, items: null, threshold: 0 });
 	}
 
+	getUser(id: number): Promise<User | null> {
+		return User.findOne({ where: { id } });
+	}
+
 	updateThreshold(data: UpdateThresholdDto): Promise<number[]> {
 		return User.update(
 			{ threshold: data.threshold },

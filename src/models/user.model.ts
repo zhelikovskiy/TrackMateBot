@@ -14,10 +14,6 @@ User.init(
 			type: DataTypes.INTEGER,
 			primaryKey: true,
 		},
-		items: {
-			type: DataTypes.TEXT,
-			defaultValue: null,
-		},
 		threshold: {
 			type: DataTypes.INTEGER,
 			defaultValue: 0,
@@ -31,6 +27,13 @@ User.init(
 	}
 );
 
-User.hasMany(Item, { foreignKey: 'userId', as: 'items' });
+User.hasMany(Item, {
+	foreignKey: 'userId',
+	as: 'items',
+});
+Item.belongsTo(User, {
+	foreignKey: 'userId',
+	as: 'user',
+});
 
 export default User;

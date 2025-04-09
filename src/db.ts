@@ -1,4 +1,6 @@
 import { Sequelize } from 'sequelize';
+import Item from './models/item.model';
+import User from './models/user.model';
 
 // const db = new Sequelize({
 // 	dialect: 'sqlite',

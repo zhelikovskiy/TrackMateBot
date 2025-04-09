@@ -1,6 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
 import db from '../db';
-import User from './user.model';
 
 class Item extends Model {
 	declare id: number;
@@ -34,14 +33,6 @@ Item.init(
 			type: DataTypes.TEXT,
 			defaultValue: null,
 		},
-		userId: {
-			type: DataTypes.INTEGER,
-			allowNull: false,
-			references: {
-				model: User,
-				key: 'id',
-			},
-		},
 	},
 	{
 		sequelize: db,
@@ -50,7 +41,5 @@ Item.init(
 		timestamps: false,
 	}
 );
-
-Item.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 export default Item;
