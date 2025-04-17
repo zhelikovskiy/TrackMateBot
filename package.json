@@ -17,6 +17,7 @@
 		"axios": "^1.8.4",
 		"dotenv": "^16.4.7",
 		"node-schedule": "^2.1.1",
+		"playwright": "^1.51.1",
 		"puppeteer": "^24.5.0",
 		"sequelize": "^6.37.7",
 		"sqlite3": "^5.1.7",

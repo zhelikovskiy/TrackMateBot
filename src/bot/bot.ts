@@ -3,6 +3,7 @@ import { env } from './../configs/env.config';
 import userService from '../services/user.service';
 import itemService from '../services/item.service';
 import scrapingService from '../services/scraping.service';
+import { PriceParsingError } from '../errors';
 
 const bot = new Telegraf(env.botToken);
 
@@ -17,21 +18,37 @@ bot.help(async (ctx) => {
 });
 
 bot.command('check', async (ctx) => {
-	const { message } = ctx.update as any;
-	const url = message.text.split(' ')[1];
+	try {
+		const { message } = ctx.update as any;
+		const url = message.text.split(' ')[1];
 
-	if (!url) {
-		return ctx.reply('Please provide a URL to track.');
+		if (!url) {
+			return ctx.reply('Please provide a URL to track.');
+		}
+
+		const productData = await scrapingService.getProductData(url);
+		if (!productData) {
+			return ctx.reply(
+				'Could not retrieve product data. Please check the URL.'
+			);
+		}
+
+		if (productData.oldPrice)
+			ctx.reply(
+				`Title: ${productData.title}\nPrice: ${productData.price} ${productData.currency}\nOld Price: ${productData.oldPrice} ${productData.currency}\nStore: ${productData.store}`
+			);
+		else
+			ctx.reply(
+				`Title: ${productData.title}\nPrice: ${productData.price} ${productData.currency}\nStore: ${productData.store}`
+			);
+	} catch (error) {
+		if (error instanceof PriceParsingError) {
+			ctx.reply(`Sorry. ${error.message}`);
+		} else {
+			console.error('Error checking product data:', error);
+			ctx.reply('Sorry. An error occurred while checking the product data.');
+		}
 	}
-
-	const productData = await scrapingService.getProductData(url);
-	if (!productData) {
-		return ctx.reply('Could not retrieve product data. Please check the URL.');
-	}
-
-	ctx.reply(
-		`Product data:\nTitle: ${productData.title}\nPrice: ${productData.price} ${productData.currency}\nStore: ${productData.store}`
-	);
 });
 
 bot.command('track', async (ctx) => {

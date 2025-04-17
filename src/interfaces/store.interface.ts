@@ -3,6 +3,7 @@ export type ItemWebData = {
 	price: number;
 	currency: string;
 	store: string;
+	oldPrice?: number;
 };
 
 interface StoreInterface {
