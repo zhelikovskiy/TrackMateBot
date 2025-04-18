@@ -14,14 +14,16 @@ class ScrapingService {
 		this.stores = {
 			amazon: amazonService,
 			ebay: ebayService,
+			'amazon.de': amazonService,
 		};
 	}
 
 	private identifyStore(url: string): string | null {
-		if (url.includes('amazon')) {
+		if (url.includes('amazon.de')) {
+			return 'amazon.de';
+		} else if (url.includes('amazon')) {
 			return 'amazon';
-		}
-		if (url.includes('ebay')) {
+		} else if (url.includes('ebay')) {
 			return 'ebay';
 		}
 		return null;
@@ -33,7 +35,7 @@ class ScrapingService {
 			throw new Error('Unsupported store');
 		}
 
-		return await this.stores[storeKey].getProductData(url);
+		return await this.stores[storeKey].getProductData(url, storeKey);
 	}
 }
 

@@ -7,7 +7,7 @@ export type ItemWebData = {
 };
 
 interface StoreInterface {
-	getProductData(url: string): Promise<ItemWebData>;
+	getProductData(url: string, store: string): Promise<ItemWebData>;
 }
 
 export default StoreInterface;

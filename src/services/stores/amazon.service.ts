@@ -1,7 +1,6 @@
 import StoreInterface, { ItemWebData } from '../../interfaces/store.interface';
 import puppeteerService from '../puppeteer.service';
 import { PriceParsingError } from '../../errors';
-import axios from 'axios';
 
 class AmazonService implements StoreInterface {
 	// async getProductData(url: string): Promise<any> {
@@ -68,7 +67,7 @@ class AmazonService implements StoreInterface {
 	// 	return itemInfo;
 	// }
 
-	async getProductData(url: string): Promise<any> {
+	async getProductData(url: string, store: string): Promise<any> {
 		const page = await puppeteerService.getPage();
 		await page.goto(url, { waitUntil: 'networkidle2' });
 
@@ -90,9 +89,10 @@ class AmazonService implements StoreInterface {
 		const price = parseFloat(priceMatch[2].replace(',', '.'));
 
 		const oldPriceStr = await page.$eval(
-			'.a-price.a-text-price .a-offscreen',
+			'.basisPrice .a-price.a-text-price .a-offscreen',
 			(el) => el.textContent?.trim() || ''
 		);
+
 		const oldPriceMatch = oldPriceStr.match(/([^\d.,]+)?([\d.,]+)/);
 		let oldPrice = oldPriceMatch
 			? parseFloat(oldPriceMatch[2].replace(',', '.'))
@@ -102,7 +102,7 @@ class AmazonService implements StoreInterface {
 		const itemInfo: ItemWebData = {
 			price: price,
 			title: title,
-			store: 'amazon',
+			store: store,
 			currency: currency,
 			oldPrice: oldPrice,
 		};

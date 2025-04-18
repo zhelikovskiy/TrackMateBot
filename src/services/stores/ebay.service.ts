@@ -2,7 +2,7 @@ import StoreInterface, { ItemWebData } from '../../interfaces/store.interface';
 import puppeteerService from '../puppeteer.service';
 
 class EbayService implements StoreInterface {
-	async getProductData(url: string): Promise<ItemWebData> {
+	async getProductData(url: string, store: string): Promise<ItemWebData> {
 		const page = await puppeteerService.getPage();
 		await page.goto(url, { waitUntil: 'networkidle2' });
 
@@ -28,7 +28,7 @@ class EbayService implements StoreInterface {
 		return {
 			title: title,
 			price: price,
-			store: 'ebay',
+			store: store,
 			currency: currency,
 		};
 	}
