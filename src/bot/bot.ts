@@ -3,9 +3,16 @@ import { env } from './../configs/env.config';
 import userService from '../services/user.service';
 import itemService from '../services/item.service';
 import scrapingService from '../services/scraping.service';
-import { PriceParsingError, UnsupportedStoreError } from '../errors';
+import scheduleService from '../services/schedule.service';
+import {
+	DiscountAlreadyExistsError,
+	PriceParsingError,
+	UnsupportedStoreError,
+} from '../errors';
 
 const bot = new Telegraf(env.botToken);
+
+scheduleService.start();
 
 bot.start(async (ctx) => {
 	ctx.reply('Welcome!');
@@ -15,6 +22,11 @@ bot.help(async (ctx) => {
 	ctx.reply(
 		'Available commands:\n/start - Start the bot\n/help - Show help\n/check - Check item price\n/track <url> - Track an item\n/list - List tracked items\n/remove <itemId> - Remove an item from tracking\n/threshold <value> - Set price threshold\n/update - Update item prices'
 	);
+});
+
+bot.command('checknow', async (ctx) => {
+	await scheduleService.checkPrices();
+	ctx.reply('Проверка цен завершена.');
 });
 
 bot.command('check', async (ctx) => {
@@ -72,9 +84,11 @@ bot.command('track', async (ctx) => {
 
 		const productData = await scrapingService.getProductData(url);
 		if (!productData) {
-			return ctx.reply(
-				'Could not retrieve product data. Please check the URL.'
-			);
+			throw new PriceParsingError();
+		}
+
+		if (productData.oldPrice) {
+			throw new DiscountAlreadyExistsError();
 		}
 
 		const item = await itemService.createItem({
@@ -85,13 +99,22 @@ bot.command('track', async (ctx) => {
 			store: productData.store,
 		});
 
-		ctx.replyWithHTML(`Item is being tracked! You will be notified when the price changes. Item info:
-        \nID: ${item.id} \nName: ${item.name} \nURL: <a href="${item.url}">link</a> \nStore: ${item.store} \nPrice: ${item.lastPrice}`);
+		ctx.replyWithHTML(
+			`<b>Item is now being tracked!</b>\n\n<b>Item Details:</b>\n` +
+				`<b>ID:</b> ${item.id}\n` +
+				`<b>Name:</b> ${item.name}\n` +
+				`<b>URL:</b> <a href="${item.url}">link</a>\n` +
+				`<b>Store:</b> ${item.store}\n` +
+				`<b>Price:</b> ${item.lastPrice} ${productData.currency}\n\n` +
+				`You will be notified when the price changes.`
+		);
 	} catch (error) {
 		if (error instanceof PriceParsingError) {
 			ctx.reply(`Error. ${error.message}`);
 		} else if (error instanceof UnsupportedStoreError) {
 			ctx.reply(`Error. ${error.message}`);
+		} else if (error instanceof DiscountAlreadyExistsError) {
+			ctx.reply(`${error.message}`);
 		} else {
 			console.error('Error tracking product:', error);
 			ctx.reply('Sorry. An error occurred while tracking the product.');

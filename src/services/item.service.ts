@@ -14,15 +14,15 @@ type UpdateItemDto = {
 };
 
 class ItemService {
-	createItem(data: CreateItemDto): Promise<Item> {
+	public async createItem(data: CreateItemDto): Promise<Item> {
 		return Item.create(data);
 	}
 
-	getUserItems(userId: number): Promise<Item[]> {
+	public async getUserItems(userId: number): Promise<Item[]> {
 		return Item.findAll();
 	}
 
-	updatePrice(data: UpdateItemDto): Promise<Item | null> {
+	public async updatePrice(data: UpdateItemDto): Promise<Item | null> {
 		return Item.update(
 			{ lastPrice: data.price },
 			{ where: { id: data.id } }
@@ -31,8 +31,13 @@ class ItemService {
 		});
 	}
 
-	removeItem(id: number): Promise<number> {
+	public async removeItem(id: number): Promise<number> {
 		return Item.destroy({ where: { id } });
+	}
+
+	public async getAllItems(): Promise<Item[]> {
+		const items = await Item.findAll();
+		return items;
 	}
 }
 
