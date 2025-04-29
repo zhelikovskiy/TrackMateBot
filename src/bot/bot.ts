@@ -49,9 +49,7 @@ bot.command('check', async (ctx) => {
 
 		const productData = await scrapingService.getProductData(url);
 		if (!productData) {
-			return ctx.reply(
-				'Could not retrieve product data. Please check the URL.'
-			);
+			throw new PriceParsingError();
 		}
 
 		const priceDetails = productData.oldPrice
