@@ -5,7 +5,6 @@ import Item from './item.model';
 class User extends Model {
 	declare id: number;
 	declare items: string | null;
-	declare threshold: number;
 }
 
 User.init(
@@ -13,10 +12,6 @@ User.init(
 		id: {
 			type: DataTypes.INTEGER,
 			primaryKey: true,
-		},
-		threshold: {
-			type: DataTypes.INTEGER,
-			defaultValue: 0,
 		},
 	},
 	{

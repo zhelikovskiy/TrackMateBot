@@ -7,24 +7,17 @@ type CreateUserDto = {
 
 type UpdateThresholdDto = {
 	id: number;
-	threshold: number;
 };
 
 class UserService {
 	createUser(data: CreateUserDto): Promise<User> {
-		return User.create({ id: data.id, items: null, threshold: 0 });
+		return User.create({ id: data.id, items: null});
 	}
 
 	getUser(id: number): Promise<User | null> {
 		return User.findOne({ where: { id } });
 	}
 
-	updateThreshold(data: UpdateThresholdDto): Promise<number[]> {
-		return User.update(
-			{ threshold: data.threshold },
-			{ where: { id: data.id } }
-		);
-	}
 }
 
 export default new UserService();
