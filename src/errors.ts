@@ -6,14 +6,26 @@ export class CustomError extends Error {
 	}
 }
 
-export class DiscountAlreadyExistsError extends CustomError {
-	constructor(message = 'Discount already exists on this product') {
+export class UserHasNoTrackedItemsError extends CustomError {
+	constructor(message = 'U have no tracked items') {
+		super(message);
+	}
+}
+
+export class ItemIdNotFoundError extends CustomError {
+	constructor(message = 'Item ID not found') {
 		super(message);
 	}
 }
 
 export class ItemNotFoundError extends CustomError {
-	constructor(message = 'Item not found') {
+	constructor(message = 'Item with this ID not found') {
+		super(message);
+	}
+}
+
+export class DiscountAlreadyExistsError extends CustomError {
+	constructor(message = 'Discount already exists on this product') {
 		super(message);
 	}
 }

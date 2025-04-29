@@ -37,13 +37,13 @@ class AmazonService implements StoreInterface {
 					)
 					.then((el) => {
 						if (!el) return '0,00';
-						else
-							oldPrice = parseFloat(
-								el
-									.split(' ')[1]
-									.replace(/\./g, '')
-									.replace(',', '.')
-							);
+						else {
+							const oldPriceMatch =
+								el.match(/([^\d.,]+)?([\d.,]+)/);
+							oldPrice = oldPriceMatch
+								? parseFloat(oldPriceMatch[2].replace(',', '.'))
+								: 0;
+						}
 					})
 					.catch(() => {
 						oldPrice = 0;

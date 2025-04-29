@@ -6,8 +6,11 @@ import scrapingService from '../services/scraping.service';
 import scheduleService from '../services/schedule.service';
 import {
 	DiscountAlreadyExistsError,
+	ItemIdNotFoundError,
+	ItemNotFoundError,
 	PriceParsingError,
 	UnsupportedStoreError,
+	UserHasNoTrackedItemsError,
 } from '../errors';
 
 const bot = new Telegraf(env.botToken);
@@ -15,18 +18,24 @@ const bot = new Telegraf(env.botToken);
 scheduleService.start();
 
 bot.start(async (ctx) => {
-	ctx.reply('Welcome!');
-});
-
-bot.help(async (ctx) => {
-	ctx.reply(
-		'Available commands:\n/start - Start the bot\n/help - Show help\n/check - Check item price\n/track <url> - Track an item\n/list - List tracked items\n/remove <itemId> - Remove an item from tracking\n/threshold <value> - Set price threshold\n/update - Update item prices'
+	ctx.replyWithHTML(
+		`<b>Hi! I'm TrackMateBot!</b>\n` +
+			`I can help you not miss out on the deals on products you want to purchase!\n` +
+			`I'm a test version and may be running erratically right now. Currently, I support only Amazon and eBay items.\n` +
+			`To find out what I can do, send <b>/help</b>\n`
 	);
 });
 
-bot.command('checknow', async (ctx) => {
-	await scheduleService.checkPrices();
-	ctx.reply('Проверка цен завершена.');
+bot.help(async (ctx) => {
+	ctx.replyWithHTML(
+		`<b>Available Commands:</b>\n` +
+			`<b>/start</b> - Start the bot\n` +
+			`<b>/help</b> - Show this help message\n` +
+			`<b>/check &lt;url&gt;</b> - Check item price\n` +
+			`<b>/track &lt;url&gt;</b> - Track an item\n` +
+			`<b>/list</b> - List tracked items\n` +
+			`<b>/remove &lt;itemId&gt;</b> - Remove an item from tracking\n`
+	);
 });
 
 bot.command('check', async (ctx) => {
@@ -45,14 +54,16 @@ bot.command('check', async (ctx) => {
 			);
 		}
 
-		if (productData.oldPrice)
-			ctx.reply(
-				`Title: ${productData.title}\nPrice: ${productData.price} ${productData.currency}\nOld Price: ${productData.oldPrice} ${productData.currency}\nStore: ${productData.store}`
-			);
-		else
-			ctx.reply(
-				`Title: ${productData.title}\nPrice: ${productData.price} ${productData.currency}\nStore: ${productData.store}`
-			);
+		const priceDetails = productData.oldPrice
+			? `Price: <b>${productData.price} ${productData.currency}</b>\n` +
+			  `Old Price: <b>${productData.oldPrice} ${productData.currency}</b>`
+			: `Price: <b>${productData.price} ${productData.currency}</b>`;
+
+		ctx.replyWithHTML(
+			`Title: <b>${productData.title}</b>\n` +
+				`${priceDetails}\n` +
+				`Store: <b>${productData.store}</b>`
+		);
 	} catch (error) {
 		if (error instanceof PriceParsingError) {
 			ctx.reply(`Sorry. ${error.message}`);
@@ -100,12 +111,12 @@ bot.command('track', async (ctx) => {
 		});
 
 		ctx.replyWithHTML(
-			`<b>Item is now being tracked!</b>\n\n<b>Item Details:</b>\n` +
-				`<b>ID:</b> ${item.id}\n` +
-				`<b>Name:</b> ${item.name}\n` +
-				`<b>URL:</b> <a href="${item.url}">link</a>\n` +
-				`<b>Store:</b> ${item.store}\n` +
-				`<b>Price:</b> ${item.lastPrice} ${productData.currency}\n\n` +
+			`Item is now being tracked!\n\n<b>Item Details:</b>\n` +
+				`ID: <b>${item.id}</b>\n` +
+				`Name: <b>${item.name}</b>\n` +
+				`URL: <a href="${item.url}"><b>link</b></a>\n` +
+				`Store: <b>${item.store}</b>\n` +
+				`Price: <b>${item.lastPrice} ${productData.currency}</b>\n\n` +
 				`You will be notified when the price changes.`
 		);
 	} catch (error) {
@@ -140,41 +151,62 @@ bot.command('list', async (ctx) => {
 
 	const itemList = items
 		.map(
-			(item) =>
-				`ID: ${item.id}, Name: ${item.name}, URL: <a href="${item.url}">link</a>, Store: ${item.store}`
+			(item, index) =>
+				`${index + 1}. Name: <b>${item.name}</b>\n` +
+				`   ID: <b>${item.id}</b>\n` +
+				`   URL: <a href="${item.url}"><b>link</b></a>\n` +
+				`   Store: <b>${item.store}</b>\n`
 		)
-		.join('\n');
+		.join('\n\n');
 
-	ctx.replyWithHTML(`Your tracked items:\n${itemList}`);
+	ctx.replyWithHTML(`<b>Your tracked items:</b>\n\n${itemList}`);
 });
 
 bot.command('remove', async (ctx) => {
-	const { message } = ctx.update as any;
-	const userId = ctx.from.id;
-	const itemId = message.text.split(' ')[1];
+	try {
+		const { message } = ctx.update as any;
+		const userId = ctx.from.id;
+		const itemId = message.text.split(' ')[1];
 
-	if (!itemId) {
-		return ctx.reply('Please provide an item ID to remove.');
+		if (!itemId) {
+			throw new ItemIdNotFoundError();
+		}
+
+		let user = await userService.getUser(userId);
+
+		if (!user) {
+			throw new UserHasNoTrackedItemsError();
+		}
+
+		const item = await itemService.removeItem(Number(itemId));
+
+		if (item === 0) {
+			throw new ItemNotFoundError();
+		}
+
+		ctx.reply(`Item removed successfully!`);
+	} catch (error) {
+		if (error instanceof ItemIdNotFoundError) {
+			ctx.reply(`Error. ${error.message}`);
+		} else if (error instanceof UserHasNoTrackedItemsError) {
+			ctx.reply(`Error. ${error.message}`);
+		} else if (error instanceof ItemNotFoundError) {
+			ctx.reply(`Error. ${error.message}`);
+		} else {
+			ctx.reply('Sorry. An error occurred while removing the item.');
+		}
+		console.error('Error removing item:', error);
+		ctx.reply('Sorry. An error occurred while removing the item.');
 	}
-
-	let user = await userService.getUser(userId);
-
-	if (!user) {
-		return ctx.reply('No items found for you.');
-	}
-
-	const item = await itemService.removeItem(Number(itemId));
-
-	if (item === 0) {
-		return ctx.reply('Item not found.');
-	}
-
-	ctx.reply(`Item removed successfully!`);
 });
 
-bot.command('update', async (ctx) => {});
-
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => {
+	scheduleService.stop();
+	bot.stop('SIGINT');
+});
+process.once('SIGTERM', () => {
+	scheduleService.stop();
+	bot.stop('SIGTERM');
+});
 
 export default bot;

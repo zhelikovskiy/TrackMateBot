@@ -19,7 +19,7 @@ class ItemService {
 	}
 
 	public async getUserItems(userId: number): Promise<Item[]> {
-		return Item.findAll();
+		return Item.findAll({ where: { userId } });
 	}
 
 	public async updatePrice(data: UpdateItemDto): Promise<Item | null> {
