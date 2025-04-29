@@ -11,6 +11,7 @@ import User from './models/user.model';
 const db = new Sequelize({
 	dialect: 'sqlite',
 	storage: ':memory:',
+	logging: false,
 });
 
 export default db;

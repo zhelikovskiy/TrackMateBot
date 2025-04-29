@@ -6,6 +6,12 @@ export class CustomError extends Error {
 	}
 }
 
+export class DiscountAlreadyExistsError extends CustomError {
+	constructor(message = 'Discount already exists on this product') {
+		super(message);
+	}
+}
+
 export class ItemNotFoundError extends CustomError {
 	constructor(message = 'Item not found') {
 		super(message);
