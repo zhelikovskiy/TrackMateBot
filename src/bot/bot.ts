@@ -3,7 +3,7 @@ import { env } from './../configs/env.config';
 import userService from '../services/user.service';
 import itemService from '../services/item.service';
 import scrapingService from '../services/scraping.service';
-import { PriceParsingError } from '../errors';
+import { PriceParsingError, UnsupportedStoreError } from '../errors';
 
 const bot = new Telegraf(env.botToken);
 
@@ -46,42 +46,57 @@ bot.command('check', async (ctx) => {
 			ctx.reply(`Sorry. ${error.message}`);
 		} else {
 			console.error('Error checking product data:', error);
-			ctx.reply('Sorry. An error occurred while checking the product data.');
+			ctx.reply(
+				'Sorry. An error occurred while checking the product data.'
+			);
 		}
 	}
 });
 
 bot.command('track', async (ctx) => {
-	const { message } = ctx.update as any;
-	const url = message.text.split(' ')[1];
+	try {
+		const { message } = ctx.update as any;
+		const url = message.text.split(' ')[1];
 
-	if (!url) {
-		return ctx.reply('Please provide a URL to track.');
+		if (!url) {
+			return ctx.reply('Please provide a URL to track.');
+		}
+
+		const userId = ctx.from.id;
+
+		let user = await userService.getUser(userId);
+
+		if (!user) {
+			user = await userService.createUser({ id: userId });
+		}
+
+		const productData = await scrapingService.getProductData(url);
+		if (!productData) {
+			return ctx.reply(
+				'Could not retrieve product data. Please check the URL.'
+			);
+		}
+
+		const item = await itemService.createItem({
+			userId: user.id,
+			url: url,
+			name: productData.title,
+			lastPrice: productData.price,
+			store: productData.store,
+		});
+
+		ctx.replyWithHTML(`Item is being tracked! You will be notified when the price changes. Item info:
+        \nID: ${item.id} \nName: ${item.name} \nURL: <a href="${item.url}">link</a> \nStore: ${item.store} \nPrice: ${item.lastPrice}`);
+	} catch (error) {
+		if (error instanceof PriceParsingError) {
+			ctx.reply(`Error. ${error.message}`);
+		} else if (error instanceof UnsupportedStoreError) {
+			ctx.reply(`Error. ${error.message}`);
+		} else {
+			console.error('Error tracking product:', error);
+			ctx.reply('Sorry. An error occurred while tracking the product.');
+		}
 	}
-
-	const userId = ctx.from.id;
-
-	let user = await userService.getUser(userId);
-
-	if (!user) {
-		user = await userService.createUser({ id: userId });
-	}
-
-	const productData = await scrapingService.getProductData(url);
-	if (!productData) {
-		return ctx.reply('Could not retrieve product data. Please check the URL.');
-	}
-
-	const item = await itemService.createItem({
-		userId: user.id,
-		url: url,
-		name: productData.title,
-		lastPrice: productData.price,
-		store: productData.store,
-	});
-
-	ctx.reply(`Item is being tracked! You will be notified when the price changes. Item info:
-        \nID: ${item.id} \nName: ${item.name} \nURL: ${item.url} \nStore: ${item.store} \nPrice: ${item.lastPrice}`);
 });
 
 bot.command('list', async (ctx) => {
@@ -103,11 +118,11 @@ bot.command('list', async (ctx) => {
 	const itemList = items
 		.map(
 			(item) =>
-				`ID: ${item.id}, Name: ${item.name}, URL: ${item.url}, Store: ${item.store}`
+				`ID: ${item.id}, Name: ${item.name}, URL: <a href="${item.url}">link</a>, Store: ${item.store}`
 		)
 		.join('\n');
 
-	ctx.reply(`Your tracked items:\n${itemList}`);
+	ctx.replyWithHTML(`Your tracked items:\n${itemList}`);
 });
 
 bot.command('remove', async (ctx) => {
@@ -132,29 +147,6 @@ bot.command('remove', async (ctx) => {
 	}
 
 	ctx.reply(`Item removed successfully!`);
-});
-
-bot.command('threshold', async (ctx) => {
-	const { message } = ctx.update as any;
-	const userId = ctx.from.id;
-	const threshold = message.text.split(' ')[1];
-
-	if (!threshold) {
-		return ctx.reply('Please provide a threshold value.');
-	}
-
-	let user = await userService.getUser(userId);
-
-	if (!user) {
-		user = await userService.createUser({ id: userId });
-	}
-
-	await userService.updateThreshold({
-		id: user.id,
-		threshold: Number(threshold),
-	});
-
-	ctx.reply(`Threshold set to ${threshold}`);
 });
 
 bot.command('update', async (ctx) => {});

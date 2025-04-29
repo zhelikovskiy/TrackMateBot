@@ -17,3 +17,9 @@ export class PriceParsingError extends CustomError {
 		super(message);
 	}
 }
+
+export class UnsupportedStoreError extends CustomError {
+	constructor(message = 'Unsupported store') {
+		super(message);
+	}
+}

@@ -1,3 +1,4 @@
+import { UnsupportedStoreError } from '../errors';
 import StoreInterface, { ItemWebData } from '../interfaces/store.interface';
 import amazonService from './stores/amazon.service';
 import ebayService from './stores/ebay.service';
@@ -32,7 +33,7 @@ class ScrapingService {
 	public async getProductData(url: string): Promise<ItemWebData> {
 		const storeKey = this.identifyStore(url);
 		if (!storeKey || !this.stores[storeKey]) {
-			throw new Error('Unsupported store');
+			throw new UnsupportedStoreError();
 		}
 
 		return await this.stores[storeKey].getProductData(url, storeKey);
